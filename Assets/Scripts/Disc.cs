@@ -5,4 +5,5 @@ using UnityEngine;
 public class Disc : MonoBehaviour
 {
     public int scale;
+    public int towerIndex;
 }
