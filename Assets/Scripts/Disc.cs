@@ -1,9 +1,7 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
 
 public class Disc : MonoBehaviour
 {
-    public int scale;
-    public int towerIndex;
+    public int Scale;
+    public int towerIndex { get; set; }
 }

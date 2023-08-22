@@ -1,32 +1,42 @@
-using System.Collections;
-using System.Collections.Generic;
 using UnityEngine;
-using UnityEngine.Rendering;
+using UnityEngine.SceneManagement;
 using UnityEngine.UI;
+using YG;
 
 public class UI : MonoBehaviour
 {
-    private GameController gameController;
-    [SerializeField] GameObject panel;
-    [SerializeField] GameObject restartDialogue, leaderboard, guide;
-    [SerializeField] CanvasGroup background;
-    private bool restartDialogueIsShowed, leaderboardIsShowed, guideIsShowed;
-    private const float duration = 0.5f;
+    private GameController _gameController;
+
+    [SerializeField] private GameObject _restartDialogue, _leaderboard, _winDialogue, _guide, _levelsDialogue;
+    [SerializeField] CanvasGroup _background;
+    [SerializeField] LevelButton[] _levelButtons;
+    public string LeaderboardName { get; private set; }
+
+    private bool _windowIsShowed;
+
+    private const float _duration = 0.4f;
 
     void Start()
     {
-        gameController = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameController>();
+        _gameController = GameObject.FindGameObjectWithTag("GameController").GetComponent<GameController>();
+        LeaderboardName = _leaderboard.GetComponent<LeaderboardYG>().nameLB;
+        if (PlayerPrefs.GetInt("GuideIsShowed") == 0)
+        {
+            ShowGuide();
+            PlayerPrefs.SetInt("GuideIsShowed", 1);
+        }
     }
 
-    private void Restart()
+    public void Restart()
     {
-        gameController.Restart();
+        _gameController.Restart();
     }
 
     // RestartDialogue
     public void RestartButtonClick()
     {
-        if (!restartDialogueIsShowed && !leaderboardIsShowed && !guideIsShowed) ShowRestartDialogue();
+        if (_gameController.IsWin) return;
+        if (!_windowIsShowed) ShowRestartDialogue();
         else BackgroundClick();
     }
 
@@ -42,112 +52,194 @@ public class UI : MonoBehaviour
 
     private void ShowRestartDialogue()
     {
-        restartDialogue.LeanMoveLocalY(0, duration).setEaseOutExpo().setOnStart(EnableRestartDialogue);
-        background.LeanAlpha(1, duration).setEaseOutExpo();
-        restartDialogueIsShowed = true;
+        _restartDialogue.LeanCancel();
+        EnableRestartDialogue();
+        _restartDialogue.LeanMoveLocalY(0, _duration).setEaseOutExpo();
+        _background.LeanAlpha(1, _duration).setEaseOutExpo();
+        _windowIsShowed = true;
         DisableControls();
     }
 
     private void HideRestartDialogue()
     {
-        restartDialogue.LeanMoveLocalY(-1200, duration).setOnComplete(DisableRestartDialogue).setEaseInExpo();
-        background.LeanAlpha(0, duration).setEaseInExpo();
-        restartDialogueIsShowed = false;
+        _restartDialogue.LeanCancel();
+        _restartDialogue.LeanMoveLocalY(-1200, _duration).setOnComplete(DisableRestartDialogue).setEaseInExpo();
+        _background.LeanAlpha(0, _duration).setEaseInExpo();
+        _windowIsShowed = false;
         EnableControls();
     }
 
     private void DisableRestartDialogue()
     {
-        restartDialogue.SetActive(false);
+        _restartDialogue.SetActive(false);
     }
 
     private void EnableRestartDialogue()
     {
-        restartDialogue.SetActive(true);
+        _restartDialogue.SetActive(true);
     }
 
 
     // Leaderboard
     public void LeaderboardButtonClick()
     {
-        if (!restartDialogueIsShowed && !leaderboardIsShowed && !guideIsShowed) ShowLeaderboard();
+        if (_gameController.IsWin) return;
+        if (!_windowIsShowed) ShowLeaderboard();
         else BackgroundClick();
     }
 
     private void ShowLeaderboard()
     {
-        leaderboard.LeanMoveLocalY(0, duration).setEaseOutExpo().setOnStart(EnableLeaderboard);
-        background.LeanAlpha(1, duration).setEaseOutExpo();
-        leaderboardIsShowed = true;
+        _leaderboard.LeanCancel();
+        EnableLeaderboard();
+        _leaderboard.LeanMoveLocalY(0, _duration).setEaseOutExpo();
+        _background.LeanAlpha(1, _duration).setEaseOutExpo();
+        _windowIsShowed = true;
         DisableControls();
     }
 
     private void HideLeaderboard()
     {
-        leaderboard.LeanMoveLocalY(-1500, duration).setOnComplete(DisableLeaderboard).setEaseInExpo();
-        background.LeanAlpha(0, duration).setEaseInExpo();
-        leaderboardIsShowed = false;
+        _leaderboard.LeanCancel();
+        _leaderboard.LeanMoveLocalY(-1500, _duration).setOnComplete(DisableLeaderboard).setEaseInExpo();
+        _background.LeanAlpha(0, _duration).setEaseInExpo();
+        _windowIsShowed = false;
         EnableControls();
     }
 
     private void DisableLeaderboard()
     {
-        leaderboard.SetActive(false);
+        _leaderboard.SetActive(false);
     }
 
     private void EnableLeaderboard()
     {
-        leaderboard.SetActive(true);
+        _leaderboard.SetActive(true);
     }
 
 
     // Guide
     public void GuideClick()
     {
-        if (!restartDialogueIsShowed && !leaderboardIsShowed && !guideIsShowed) ShowGuide();
+        if (_gameController.IsWin) return;
+        if (!_windowIsShowed) ShowGuide();
         else BackgroundClick();
     }
     private void ShowGuide()
     {
-        guide.LeanMoveLocalY(0, duration).setEaseOutExpo().setOnStart(EnableGuide);
-        background.LeanAlpha(1, duration).setEaseOutExpo();
-        guideIsShowed = true;
+        _guide.LeanCancel();
+        EnableGuide();
+        _guide.LeanMoveLocalY(0, _duration).setEaseOutExpo();
+        _background.LeanAlpha(1, _duration).setEaseOutExpo();
+        _windowIsShowed = true;
         DisableControls();
     }
 
     private void HideGuide()
     {
-        guide.LeanMoveLocalY(-1600, duration).setOnComplete(DisableGuide).setEaseInExpo();
-        background.LeanAlpha(0, duration).setEaseInExpo();
-        guideIsShowed = false;
+        _guide.LeanCancel();
+        _guide.LeanMoveLocalY(-1600, _duration).setOnComplete(DisableGuide).setEaseInExpo();
+        _background.LeanAlpha(0, _duration).setEaseInExpo();
+        _windowIsShowed = false;
         EnableControls();
     }
 
     private void DisableGuide()
     {
-        guide.SetActive(false);
+        _guide.SetActive(false);
     }
 
     private void EnableGuide()
     {
-        guide.SetActive(true);
+        _guide.SetActive(true);
     }
 
 
     // EnableControls
     public void BackgroundClick()
     {
-        if (leaderboardIsShowed) HideLeaderboard();
-        if (restartDialogueIsShowed) HideRestartDialogue();
-        if (guideIsShowed) HideGuide();
-        gameController.ControlsIsAvaliable = true;
+        if (_gameController.IsWin) return;
+        if (_leaderboard.activeInHierarchy) HideLeaderboard();
+        if (_restartDialogue.activeInHierarchy) HideRestartDialogue();
+        if (_guide.activeInHierarchy) HideGuide();
+        if (_levelsDialogue.activeInHierarchy) HideLevelsDialogue();
+
+        _gameController.SwitchControls(true);
     }
     public void EnableControls()
     {
-        if (leaderboardIsShowed && restartDialogueIsShowed && !guideIsShowed) gameController.ControlsIsAvaliable = true;
+        if (!_windowIsShowed) _gameController.SwitchControls(true);
     }
     public void DisableControls()
     {
-        gameController.ControlsIsAvaliable = false;
+        _gameController.SwitchControls(false);
+    }
+    
+
+    // WinDialogue
+    public void ShowWinDialogue()
+    {
+        _winDialogue.LeanCancel();
+        EnableWinDialogue();
+        _winDialogue.LeanMoveLocalY(0, _duration).setEaseOutExpo();
+        _background.LeanAlpha(1, _duration).setEaseOutExpo();
+        LevelButtonsUpdate();
+    }
+    private void EnableWinDialogue()
+    {
+        _winDialogue.SetActive(true);
+    }
+
+
+
+    // LevelsDialogue
+    public void LevelsDialogueButtonClick()
+    {
+        if (_gameController.IsWin) return;
+        if (!_windowIsShowed) ShowLevelsDialogue();
+        else BackgroundClick();
+    }
+
+    private void ShowLevelsDialogue()
+    {
+        _levelsDialogue.LeanCancel();
+        EnableLevelsDialogue();
+        _levelsDialogue.LeanMoveLocalY(0, _duration).setEaseOutExpo();
+        _background.LeanAlpha(1, _duration).setEaseOutExpo();
+        _windowIsShowed = true;
+        DisableControls();
+        LevelButtonsUpdate();
+    }
+
+    private void HideLevelsDialogue()
+    {
+        _levelsDialogue.LeanMoveLocalY(-1500, _duration).setOnComplete(DisableLevelsDialogue).setEaseInExpo();
+        _background.LeanAlpha(0, _duration).setEaseInExpo();
+        _windowIsShowed = false;
+        EnableControls();
+    }
+
+    private void DisableLevelsDialogue()
+    {
+        _levelsDialogue.SetActive(false);
+    }
+
+    private void EnableLevelsDialogue()
+    {
+        _levelsDialogue.SetActive(true);
+    }
+
+    public void LevelButton_Click(int index)
+    {
+        int firstLevelInBuildSettings = 1;
+        SceneManager.LoadScene(index + firstLevelInBuildSettings);
+    }
+
+    private void LevelButtonsUpdate()
+    {
+        foreach(LevelButton button in _levelButtons)
+        {
+            button.UpdateButton();
+        }
     }
 }

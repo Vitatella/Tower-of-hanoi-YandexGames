@@ -4,7 +4,7 @@ using UnityEngine.UI;
 #if UNITY_EDITOR
 using System.Collections;
 using UnityEngine.Networking;
-using Newtonsoft.Json.Linq;
+//using Newtonsoft.Json.Linq;
 using System;
 using System.Net;
 #endif
@@ -238,8 +238,8 @@ namespace YG
 
             try
             {
-                JArray jsonArray = JArray.Parse(response);
-                response = jsonArray[0][0][0].ToString();
+                //JArray jsonArray = JArray.Parse(response);
+                //response = jsonArray[0][0][0].ToString();
             }
             catch
             {

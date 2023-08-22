@@ -6,110 +6,148 @@ using YG;
 
 public class GameController : MonoBehaviour
 {
-    [SerializeField] Disc[] allDiscs;
-    [SerializeField] float diskHeight;
-    private float choicedDiscHeight;
-    [SerializeField] Tower[] towers;
-    private Disc choicedDisc;
-    private int moveCount;
-    [SerializeField] Text moveCountText, smallestNumberOfMovesText;
-    public bool ControlsIsAvaliable = true;
-    [SerializeField] bool savesIsEnabled;
-    private int theLeastNumberOfMoves;
+    [SerializeField] public int LevelIndex;
 
-    [SerializeField] AdController adController;
+    [SerializeField] private Disc[] _allDiscs;
+    [SerializeField] private float _diskHeight;
+    private float _choicedDiscHeight;
+    [SerializeField] private Tower[] _towers;
+    private Disc _choicedDisc;
+    private int _moveCount;
+    private Text _moveCountText, _smallestNumberOfMovesText;
+    public bool ControlsIsAvaliable { get; private set; } = true;
+    private int _smallestNumberOfMoves;
+    private UI _userInterface;
+    public bool IsWin { get; private set; }
+
+    [SerializeField] private AdController _adController;
+
     private void Awake()
     {
-        choicedDiscHeight = 8 * diskHeight;
+        _choicedDiscHeight = (_allDiscs.Length + 1) * _diskHeight;
+        _moveCountText = GameObject.Find("MoveCount").GetComponent<Text>();
+        _smallestNumberOfMovesText = GameObject.Find("SmallestMoveCount").GetComponent<Text>();
+        _userInterface = GameObject.Find("UI").GetComponent<UI>();
     }
+
     void Start()
     {
-        theLeastNumberOfMoves = PlayerPrefs.GetInt("SmallestNumberOfMoves");
-        smallestNumberOfMovesText.text = theLeastNumberOfMoves != 0 ? theLeastNumberOfMoves.ToString() : "";
+        PlayerPrefs.SetInt("LastPlayedLevel", SceneManager.GetActiveScene().buildIndex);
+        _smallestNumberOfMoves = PlayerPrefs.GetInt($"{SceneManager.GetActiveScene().buildIndex}SmallestNumberOfMoves");
+        _smallestNumberOfMovesText.text = _smallestNumberOfMoves != 0 ? _smallestNumberOfMoves.ToString() : "";
         LoadProgress();
     }
+
     public float GetHeight()
     {
-        return choicedDiscHeight;
+        return _choicedDiscHeight;
     }
+
+    public void SwitchControls(bool value)
+    {
+        ControlsIsAvaliable = value;
+    }
+
     public void OnClick(Tower tower)
     {
-        if (!ControlsIsAvaliable) return;
-        if (tower.discs.Count != 0 && choicedDisc == null)
+        if (!ControlsIsAvaliable || IsWin) return;
+
+        if (tower.discs.Count != 0 && _choicedDisc == null)
         {
-            choicedDisc = tower.discs[tower.discs.Count - 1];
-            tower.discs.Remove(choicedDisc);
-            choicedDisc.transform.parent = null;
-            Vector3 endPosition = new Vector3(tower.GetPosition().x, tower.GetPosition().y + choicedDiscHeight, tower.GetPosition().z);
-            choicedDisc.GetComponent<MoveAnimation>().PickUp(choicedDisc.transform.position, endPosition);
+
+            Vector3 endPosition = new Vector3(tower.GetPosition().x, tower.GetPosition().y + _choicedDiscHeight, tower.GetPosition().z);
+            _choicedDisc = tower.discs[tower.discs.Count - 1];
+            _choicedDisc.GetComponent<MoveAnimation>().PickUp(tower.GetPosition() + new Vector3(0, _diskHeight * (tower.discs.Count - 1), 0), endPosition);
+
+            tower.discs.Remove(_choicedDisc);
+            _choicedDisc.transform.parent = null;
         }
         else
         {
-            if (choicedDisc != null && (tower.discs.Count == 0 || choicedDisc.scale < tower.discs[tower.discs.Count - 1].scale))
+            if (_choicedDisc != null && (tower.discs.Count == 0 || _choicedDisc.Scale < tower.discs[tower.discs.Count - 1].Scale))
             {
-                Vector3 beginPosition = new Vector3(choicedDisc.transform.position.x, choicedDiscHeight, choicedDisc.transform.position.z);
-                Vector3 endPosition = new Vector3(tower.GetPosition().x, tower.GetPosition().y + tower.discs.Count * diskHeight, tower.GetPosition().z);
-                
+                Vector3 beginPosition = new Vector3(_choicedDisc.transform.position.x, _choicedDiscHeight, _choicedDisc.transform.position.z);
+                Vector3 endPosition = new Vector3(tower.GetPosition().x, tower.GetPosition().y + tower.discs.Count * _diskHeight, tower.GetPosition().z);
+
                 if (new Vector2(beginPosition.x, beginPosition.z) != new Vector2(endPosition.x, endPosition.z))
-                    moveCountText.text = (++moveCount).ToString();
+                    _moveCountText.text = (++_moveCount).ToString();
 
-                choicedDisc.GetComponent<MoveAnimation>().DoMove(beginPosition, endPosition);
+                _choicedDisc.GetComponent<MoveAnimation>().DoMove(beginPosition, endPosition);
 
-                tower.discs.Add(choicedDisc);
-                choicedDisc.transform.parent = tower.transform;
-                choicedDisc.towerIndex = Array.IndexOf(towers, tower);
-                choicedDisc = null;
+                tower.discs.Add(_choicedDisc);
+                _choicedDisc.transform.parent = tower.transform;
+                _choicedDisc.towerIndex = Array.IndexOf(_towers, tower);
+                _choicedDisc = null;
                 SaveProgress();
-                
+
                 WinCheck();
             }
         }
     }
+
     private void WinCheck()
     {
-        if (towers[2].discs.Count == allDiscs.Length - 1) Win();
+        if (_towers[2].discs.Count == _allDiscs.Length)
+        {
+            Invoke("Win", 0.5f);
+            IsWin = true;
+            if (PlayerPrefs.GetInt("AvaliableLevels") < LevelIndex + 1)
+                PlayerPrefs.SetInt("AvaliableLevels", LevelIndex + 1);
+        }
     }
+
     private void Win()
     {
-        if (moveCount < theLeastNumberOfMoves)
+        if (_smallestNumberOfMoves == 0 || _moveCount < _smallestNumberOfMoves)
         {
-            PlayerPrefs.SetInt("TheLeastNumberOfMoves", theLeastNumberOfMoves = moveCount);
-            YandexGame.NewLeaderboardScores("TheLeastNumberOfMoves", theLeastNumberOfMoves);
+            PlayerPrefs.SetInt($"{SceneManager.GetActiveScene().buildIndex}SmallestNumberOfMoves", _smallestNumberOfMoves = _moveCount);
+            YandexGame.NewLeaderboardScores(_userInterface.LeaderboardName, _smallestNumberOfMoves);
         }
+        ResetSave();
         ControlsIsAvaliable = false;
-        adController.ShowAd();
+        _userInterface.ShowWinDialogue();
     }
+
     private void SaveProgress()
     {
-        PlayerPrefs.SetInt("StepsCount", moveCount);
+        PlayerPrefs.SetInt($"{SceneManager.GetActiveScene().buildIndex}StepsCount", _moveCount);
 
-        for (int discIndex = allDiscs.Length - 1; discIndex >= 0; discIndex--)
-            PlayerPrefs.SetInt($"{discIndex}", allDiscs[discIndex].towerIndex);
+        for (int discIndex = _allDiscs.Length - 1; discIndex >= 0; discIndex--)
+            PlayerPrefs.SetInt($"{SceneManager.GetActiveScene().buildIndex}{discIndex}", _allDiscs[discIndex].towerIndex);
     }
+
     private void LoadProgress()
     {
-        moveCountText.text = (moveCount = PlayerPrefs.GetInt("StepsCount", moveCount)).ToString();
+        _moveCountText.text = (_moveCount = PlayerPrefs.GetInt($"{SceneManager.GetActiveScene().buildIndex}StepsCount", _moveCount)).ToString();
 
-        for (int discIndex = allDiscs.Length - 1; discIndex >= 0; discIndex--)
+        for (int discIndex = _allDiscs.Length - 1; discIndex >= 0; discIndex--)
         {
-            int towerIndex = PlayerPrefs.GetInt($"{discIndex}");
+            int towerIndex = PlayerPrefs.GetInt($"{SceneManager.GetActiveScene().buildIndex}{discIndex}");
             if (towerIndex == -1) Restart();
 
-            allDiscs[discIndex].transform.position = new Vector3(towers[towerIndex].GetPosition().x,
-                towers[towerIndex].GetPosition().y + towers[towerIndex].discs.Count * diskHeight, towers[towerIndex].GetPosition().z);
-            towers[towerIndex].discs.Add(allDiscs[discIndex]);
-            allDiscs[discIndex].transform.parent = towers[towerIndex].transform;
+            _allDiscs[discIndex].transform.position = new Vector3(_towers[towerIndex].GetPosition().x,
+                _towers[towerIndex].GetPosition().y + _towers[towerIndex].discs.Count * _diskHeight, _towers[towerIndex].GetPosition().z);
+            _towers[towerIndex].discs.Add(_allDiscs[discIndex]);
+            _allDiscs[discIndex].transform.parent = _towers[towerIndex].transform;
         }
     }
+
     public void Restart()
     {
-        moveCountText.text = (moveCount = 0).ToString();
+        ResetSave();
 
-        for (int i = allDiscs.Length - 1; i >= 0; i--)
+        _adController.ShowAd();
+        SceneManager.LoadScene(SceneManager.GetActiveScene().buildIndex);
+    }
+
+    private void ResetSave()
+    {
+        _moveCountText.text = (_moveCount = 0).ToString();
+
+        for (int i = _allDiscs.Length - 1; i >= 0; i--)
         {
-            allDiscs[i].towerIndex = 0;
+            _allDiscs[i].towerIndex = 0;
         }
         SaveProgress();
-        SceneManager.LoadScene(0);
     }
 }
